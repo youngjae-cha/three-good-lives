@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { newCid, queueSend, flushOutbox, passportId, setPassport, validPassport, shouldAskPassport } from "./feedback";
+import uchicagoLogo from "./assets/uchicago-logo.svg";
 
 // =====================================================================
 // THE GOOD LIFE SCALE (GLS-15)  — Oishi et al. (2019, 2024)
@@ -356,9 +357,16 @@ function Cover({ onStart }) {
           ↓
         </motion.div>
       </motion.button>
+      <div style={coverBrand}>
+        <img src={uchicagoLogo} alt="The University of Chicago" style={coverBrandLogo} />
+        <div style={coverBrandSub}>OISHI Lab · 2026</div>
+      </div>
     </motion.main>
   );
 }
+const coverBrand = { padding: "0 1.5rem 2.2rem", textAlign: "center", opacity: 0.55 };
+const coverBrandLogo = { height: 22, width: "auto", display: "block", margin: "0 auto 7px" };
+const coverBrandSub = { fontFamily: F_MONO, fontSize: "0.62rem", letterSpacing: "0.08em", color: C.inkSoft };
 
 // =====================================================================
 // PAGE — Aspiration
