@@ -319,11 +319,13 @@ function Cover({ onStart }) {
       style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}
     >
       <div style={{
-        padding: "1.5rem 2.5rem",
-        fontFamily: F_DISPLAY, fontStyle: "italic",
-        fontSize: "0.95rem", color: C.inkSoft,
+        position: "relative", padding: "1.5rem 2.5rem", display: "flex", justifyContent: "center", alignItems: "center",
       }}>
-        Three Lives
+        <span style={{ position: "absolute", left: "2.5rem", top: "1.6rem", fontFamily: F_DISPLAY, fontStyle: "italic", fontSize: "0.95rem", color: C.inkSoft }}>Three Lives</span>
+        <div style={coverBrand}>
+          <img src={uchicagoLogo} alt="The University of Chicago" style={coverBrandLogo} />
+          <div style={coverBrandSub}>OISHI Lab · 2026</div>
+        </div>
       </div>
 
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "2rem 2.5rem", textAlign: "center" }}>
@@ -357,16 +359,12 @@ function Cover({ onStart }) {
           ↓
         </motion.div>
       </motion.button>
-      <div style={coverBrand}>
-        <img src={uchicagoLogo} alt="The University of Chicago" style={coverBrandLogo} />
-        <div style={coverBrandSub}>OISHI Lab · 2026</div>
-      </div>
     </motion.main>
   );
 }
-const coverBrand = { padding: "0 1.5rem 2.2rem", textAlign: "center", opacity: 0.55 };
-const coverBrandLogo = { height: 22, width: "auto", display: "block", margin: "0 auto 7px" };
-const coverBrandSub = { fontFamily: F_MONO, fontSize: "0.62rem", letterSpacing: "0.08em", color: C.inkSoft };
+const coverBrand = { display: "flex", alignItems: "center", gap: "0.7rem", opacity: 0.6, flexShrink: 0 };
+const coverBrandLogo = { height: 64, width: "auto", display: "block" };
+const coverBrandSub = { fontFamily: F_DISPLAY, fontSize: "1.05rem", letterSpacing: "0.02em", color: C.inkSoft, whiteSpace: "nowrap" };
 
 // =====================================================================
 // PAGE — Aspiration
