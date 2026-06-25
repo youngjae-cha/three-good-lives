@@ -1,5 +1,6 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { newCid, queueSend, flushOutbox, passportId, setPassport, validPassport, shouldAskPassport } from "./feedback";
 
 // =====================================================================
 // THE GOOD LIFE SCALE (GLS-15)  — Oishi et al. (2019, 2024)
@@ -167,14 +168,35 @@ export default function App() {
   const [aspiration, setA] = useState(null);   // happy | meaningful | rich
   const [answers, setAns]  = useState({});
   const [zip, setZip]      = useState("");
+  const [askPass, setAskPass] = useState(false);
 
   const scores = useMemo(() => computeScores(answers), [answers]);
   const done   = Object.keys(answers).length === GLS.length;
+  const submitted = useRef(false);
+
+  // On load: resend anything stranded in the outbox, and prompt for a passport during the event window.
+  useEffect(() => { flushOutbox(); if (shouldAskPassport()) setAskPass(true); }, []);
+
+  // When all 15 answers are in, send ONE row (passport + chosen life + the 15 answers). cid makes it idempotent.
+  useEffect(() => {
+    if (!done || submitted.current) return;
+    submitted.current = true;
+    queueSend({
+      ts: new Date().toISOString(),
+      ts_local: new Date().toLocaleString("en-US", { timeZone: "America/Chicago" }),
+      cid: newCid(),
+      passport_id: passportId(),
+      life_choice: aspiration || "",
+      zip,
+      ...answers,
+    });
+  }, [done]);
 
   return (
     <div style={shell}>
       <FontLoader />
       <Nav page={page} go={setPage} hasAsp={!!aspiration} hasScores={done} />
+      {askPass && <PassportModal onClose={() => setAskPass(false)} />}
       <AnimatePresence mode="wait">
         {page === "cover"      && <Cover      key="cover"      onStart={() => setPage("aspiration")} />}
         {page === "aspiration" && <Aspiration key="aspiration" choice={aspiration} setChoice={setA} onNext={() => setPage("portrait")} />}
@@ -194,6 +216,52 @@ const shell = {
   minHeight: "100vh", background: C.bg, color: C.ink,
   fontFamily: F_BODY, paddingBottom: "5rem",
 };
+
+// ---- Mindworks Passport prompt (event-gated; same rules as the Chicago map) ----
+function PassportModal({ onClose }) {
+  const [val, setVal] = useState("");
+  const [msg, setMsg] = useState("");
+  const [noId, setNoId] = useState(false);
+  function save() {
+    const v = val.trim().toUpperCase();
+    if (!validPassport(v)) { setMsg("Format: 3 letters + 5 digits (e.g. ABC12345)."); return; }
+    setPassport(v); onClose();
+  }
+  return (
+    <div style={passOverlay}>
+      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} style={passCard}>
+        {!noId ? (
+          <>
+            <div style={passTitle}>Mindworks Passport</div>
+            <div style={passSub}>What is your <b>Mindworks Passport ID</b>?</div>
+            <input value={val} onChange={(e) => setVal(e.target.value)} placeholder="e.g. ABC12345"
+                   maxLength={8} autoCapitalize="characters" style={passInput} />
+            {msg && <div style={passMsg}>{msg}</div>}
+            <button style={passBtn} onClick={save}>Start →</button>
+            <button style={passLink} onClick={() => setNoId(true)}>I don't have a Passport ID</button>
+            <div style={passNote}>If you close this tab, you'll re-enter your ID on return.</div>
+          </>
+        ) : (
+          <>
+            <div style={passTitle}>Create one — it's quick ✨</div>
+            <div style={passSub}>A Passport ID links all your event responses. Ask a Mindworks RA to set you up.</div>
+            <button style={passBtn} onClick={() => setNoId(false)}>OK, I'll enter my ID</button>
+            <button style={passLink} onClick={() => { setPassport(""); onClose(); }}>No thanks — just let me respond →</button>
+          </>
+        )}
+      </motion.div>
+    </div>
+  );
+}
+const passOverlay = { position: "fixed", inset: 0, zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(8,8,7,.72)", padding: 20 };
+const passCard = { background: "#16140f", border: "1px solid #3a352a", borderRadius: 18, padding: 26, maxWidth: 340, width: "100%", textAlign: "center", boxShadow: "0 22px 64px rgba(0,0,0,.6)", fontFamily: F_BODY, color: C.ink };
+const passTitle = { fontFamily: F_DISPLAY, fontSize: 22, marginBottom: 6 };
+const passSub = { fontSize: 14, color: "#b8b09c", lineHeight: 1.5, marginBottom: 14 };
+const passInput = { fontFamily: F_MONO, fontSize: 16, letterSpacing: 1, textAlign: "center", width: "100%", boxSizing: "border-box", padding: 11, borderRadius: 10, border: "1px solid #3a352a", background: "#0f0e0a", color: C.ink };
+const passMsg = { color: "#d98b6a", fontSize: 12, marginTop: 8 };
+const passBtn = { width: "100%", marginTop: 12, padding: 12, borderRadius: 10, border: 0, background: "#D9A93A", color: "#1a1500", fontFamily: F_DISPLAY, fontSize: 15, fontWeight: 700, cursor: "pointer" };
+const passLink = { width: "100%", marginTop: 8, padding: 6, border: 0, background: "none", color: "#8a8270", fontSize: 13, cursor: "pointer" };
+const passNote = { fontSize: 11, color: "#6a6353", marginTop: 12 };
 
 function Nav({ page, go, hasAsp, hasScores }) {
   const tabs = [
